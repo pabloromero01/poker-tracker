@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Poker Tracker · Amigos de Pitu</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a2e1a">
+<style>
+/* ============================================================
+   Poker Tracker — Tema "Noche de póker" (versión móvil)
+   ============================================================ */
+:root {
+  --oro: #e8b43a;
+  --oro-claro: #f5d47a;
+  --rojo: #d63b3b;
+  --verde-panel: #0f3d26;
+  --verde-panel-claro: #17573a;
+  --crema: #f3ead5;
+  --gris-texto: #b8c4bb;
+  --negro: #1a1405;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--crema);
+  background: radial-gradient(ellipse at 50% 20%, #14532d, #0a2e1a 60%, #051c0f);
+  background-attachment: fixed;
+  min-height: 100vh;
+  padding-bottom: calc(74px + env(safe-area-inset-bottom));
+}
+main { padding: 14px; max-width: 640px; margin: 0 auto; }
+h1 {
+  color: var(--oro);
+  font-size: 1.5rem;
+  margin: 8px 0 14px;
+  text-shadow: 0 2px 4px rgba(0,0,0,.6);
+}
+h2 { color: var(--oro-claro); font-size: 1.05rem; margin: 0 0 10px; }
+.suave { color: var(--gris-texto); font-size: .85rem; }
+
+/* ---------- Paneles tipo carta ---------- */
+.carta {
+  background: var(--verde-panel);
+  border: 1.5px solid rgba(232,180,58,.45);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+  box-shadow: 0 4px 12px rgba(0,0,0,.5);
+}
+
+/* ---------- Botones ---------- */
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(243,234,213,.25);
+  background: #1c4a33;
+  color: var(--crema);
+  border-radius: 8px;
+  padding: 9px 14px;
+}
+button:active { transform: scale(.97); }
+.b-oro {
+  background: linear-gradient(to bottom, var(--oro-claro), var(--oro));
+  color: var(--negro);
+  font-weight: bold;
+  font-size: 1rem;
+  border: 1px solid #a37b1e;
+  border-radius: 10px;
+  padding: 12px 22px;
+  box-shadow: 0 3px 6px rgba(0,0,0,.4);
+}
+.b-rojo {
+  background: linear-gradient(to bottom, #e35050, var(--rojo));
+  color: white;
+  font-weight: bold;
+  border: 1px solid #8f2222;
+  border-radius: 10px;
+  padding: 10px 18px;
+}
+.b-ficha {
+  background: linear-gradient(to bottom, #4d8cd6, #2f6cb5);
+  color: white;
+  font-weight: bold;
+  border: 2px dashed white;
+  border-radius: 18px;
+  padding: 7px 14px;
+  font-size: .85rem;
+}
+.b-ancho { width: 100%; }
+.fila-botones { display: flex; gap: 10px; flex-wrap: wrap; }
+.fila-botones > * { flex: 1; }
+
+/* ---------- Formularios ---------- */
+input[type=text], input[type=number], input[type=date], select {
+  font: inherit;
+  width: 100%;
+  background: #0b2b1b;
+  color: var(--crema);
+  border: 1px solid rgba(232,180,58,.35);
+  border-radius: 8px;
+  padding: 10px;
+}
+input:focus, select:focus { outline: none; border-color: var(--oro); }
+label { display: block; margin: 10px 0 4px; font-size: .9rem; }
+
+/* Chips de selección (buy-in y jugadores) */
+.chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.chip {
+  background: #0b2b1b;
+  border: 1.5px solid rgba(232,180,58,.4);
+  border-radius: 20px;
+  padding: 8px 16px;
+  font-weight: bold;
+  user-select: none;
+}
+.chip.activo {
+  background: linear-gradient(to bottom, var(--oro-claro), var(--oro));
+  color: var(--negro);
+  border-color: #a37b1e;
+}
+
+/* ---------- Tarjetas de jugador (partida en vivo) ---------- */
+.tarjetas { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.tj {
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+  box-shadow: 0 4px 10px rgba(0,0,0,.5);
+}
+.tj-viva {
+  background: linear-gradient(to bottom, #1b6b45, #0f3d26);
+  border: 2px solid var(--oro);
+}
+.tj-muerta {
+  background: #2b2b2b;
+  border: 2px solid #555;
+  opacity: .75;
+}
+.tj .nombre { font-size: 1rem; font-weight: bold; color: white; margin-bottom: 4px; }
+.tj .info { font-size: .75rem; color: var(--oro-claro); margin-bottom: 8px; }
+
+/* ---------- Bote ---------- */
+.bote {
+  display: inline-block;
+  background: var(--negro);
+  border: 2.5px solid var(--oro);
+  border-radius: 30px;
+  padding: 8px 22px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: var(--oro-claro);
+  margin-bottom: 12px;
+}
+
+/* ---------- Tablas ---------- */
+.tabla-scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: .82rem; }
+th {
+  background: var(--negro);
+  color: var(--oro);
+  padding: 8px 6px;
+  text-align: left;
+  white-space: nowrap;
+}
+td { padding: 8px 6px; border-top: 1px solid rgba(232,180,58,.15); white-space: nowrap; }
+tr:nth-child(even) td { background: rgba(0,0,0,.18); }
+tr.sel td { background: var(--oro); color: var(--negro); font-weight: bold; }
+
+/* ---------- Registro (log) ---------- */
+.log { list-style: none; margin: 0; padding: 0; max-height: 180px; overflow-y: auto; }
+.log li { padding: 6px 4px; border-bottom: 1px solid rgba(232,180,58,.15); font-size: .85rem; }
+
+/* ---------- Sub-pestañas ---------- */
+.subtabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+.subtab {
+  flex: 1;
+  text-align: center;
+  padding: 8px 4px;
+  background: var(--verde-panel);
+  border: 1px solid rgba(232,180,58,.35);
+  border-radius: 10px;
+  font-size: .85rem;
+  font-weight: bold;
+  user-select: none;
+}
+.subtab.activo { background: linear-gradient(to bottom, var(--oro-claro), var(--oro)); color: var(--negro); }
+
+/* ---------- Barra de navegación inferior ---------- */
+nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: #051c0f;
+  border-top: 1.5px solid rgba(232,180,58,.4);
+  padding-bottom: env(safe-area-inset-bottom);
+  z-index: 10;
+}
+nav button {
+  flex: 1;
+  background: none;
+  border: none;
+  border-radius: 0;
+  color: var(--gris-texto);
+  font-size: .7rem;
+  padding: 8px 2px 10px;
+}
+nav button .ico { display: block; font-size: 1.4rem; }
+nav button.activo { color: var(--oro); }
+
+/* ---------- Matriz de eliminaciones ---------- */
+.matriz td, .matriz th { text-align: center; }
+.matriz th:first-child { text-align: left; }
+
+/* ---------- Diálogo de reparto ---------- */
+dialog {
+  background: var(--verde-panel);
+  color: var(--crema);
+  border: 2px solid var(--oro);
+  border-radius: 14px;
+  max-width: 90vw;
+  width: 380px;
+  padding: 16px;
+}
+dialog::backdrop { background: rgba(0,0,0,.65); }
+.fila-premio { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.fila-premio span:first-child { flex: 1; }
+.fila-premio input { width: 90px; text-align: right; }
+
+.detalle { white-space: pre-wrap; font-size: .82rem; background: rgba(0,0,0,.25); border-radius: 10px; padding: 10px; }
+.oculto { display: none !important; }
+</style>
+</head>
+<body>
+
+<main id="app"></main>
+
+<nav>
+  <button data-pantalla="partida"><span class="ico">🃏</span>Partida</button>
+  <button data-pantalla="historial"><span class="ico">📋</span>Historial</button>
+  <button data-pantalla="stats"><span class="ico">📊</span>Estadísticas</button>
+  <button data-pantalla="jugadores"><span class="ico">👥</span>Jugadores</button>
+</nav>
+
+<dialog id="dlgReparto"></dialog>
+
+<script>
+'use strict';
+/* ============================================================
+   ALMACENAMIENTO
+   Los datos se guardan en el dispositivo (localStorage) con un
+   respaldo en memoria por si el navegador lo bloquea.
+   ============================================================ */
+const CLAVE = 'pokerTrackerDatos';
+let memoria = null; // respaldo en memoria
+
+function datosVacios() {
+  return { jugadores: [], partidas: [], siguienteIdJugador: 1, siguienteIdPartida: 1 };
+}
+function cargar() {
+  try {
+    const crudo = localStorage.getItem(CLAVE);
+    if (crudo) return JSON.parse(crudo);
+  } catch (e) { /* almacenamiento no disponible */ }
+  return memoria ? memoria : datosVacios();
+}
+function guardar(d) {
+  memoria = d;
+  try { localStorage.setItem(CLAVE, JSON.stringify(d)); } catch (e) { /* seguimos en memoria */ }
+}
+
+let DB = cargar();
+
+/* ============================================================
+   UTILIDADES
+   ============================================================ */
+const $ = sel => document.querySelector(sel);
+const eur = n => n.toFixed(2).replace('.', ',') + ' €';
+const nombreJugador = id => (DB.jugadores.find(j => j.id === id) || { nombre: '?' }).nombre;
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const hoy = () => new Date().toISOString().slice(0, 10);
+
+/* Dinero total metido por una participación */
+const invertido = (p, buyin) => (1 + p.recompras + p.addons) * buyin;
+const botePartida = pa => pa.participaciones.reduce((s, p) => s + invertido(p, pa.buyin), 0);
+
+/* ============================================================
+   ESTADO DE LA PARTIDA EN CURSO (no se guarda hasta finalizar)
+   ============================================================ */
+let enCurso = null; // null = pantalla de configuración
+
+function nuevaPartidaEnCurso(buyin, fecha, notas, ids) {
+  return {
+    buyin, fecha, notas,
+    vivos: [...ids],
+    eliminados: [],          // en orden de eliminación
+    eliminaciones: [],       // {eliminadorId, eliminadoId, orden}
+    recompras: Object.fromEntries(ids.map(id => [id, 0])),
+    addons: Object.fromEntries(ids.map(id => [id, 0])),
+    log: [],
+    acciones: []             // pila para deshacer: {tipo, jugadorId, indice}
+  };
+}
+
+function boteEnCurso() {
+  const g = enCurso;
+  let entradas = g.vivos.length + g.eliminados.length;
+  for (const id of Object.keys(g.recompras)) entradas += g.recompras[id] + g.addons[id];
+  return entradas * g.buyin;
+}
+
+/* ============================================================
+   NAVEGACIÓN
+   ============================================================ */
+let pantalla = 'partida';
+let subHistorial = 'todas';   // todas | 5 | 10
+let subStats = 'ranking';     // ranking | matriz | rivales
+let filtroRanking = 'todas';
+let partidaSeleccionada = null;
+
+document.querySelectorAll('nav button').forEach(b => {
+  b.onclick = () => { pantalla = b.dataset.pantalla; render(); };
+});
+
+function render() {
+  document.querySelectorAll('nav button').forEach(b =>
+    b.classList.toggle('activo', b.dataset.pantalla === pantalla));
+  const app = $('#app');
+  if (pantalla === 'partida') app.innerHTML = enCurso ? vistaEnCurso() : vistaConfig();
+  else if (pantalla === 'historial') app.innerHTML = vistaHistorial();
+  else if (pantalla === 'stats') app.innerHTML = vistaStats();
+  else app.innerHTML = vistaJugadores();
+  enganchar();
+}
+
+/* ============================================================
+   PANTALLA: NUEVA PARTIDA (configuración)
+   ============================================================ */
+let selBuyin = 10;
+let selJugadores = new Set();
+
+function vistaConfig() {
+  const chipsBuyin = [5, 10, 'otro'].map(v =>
+    `<div class="chip ${selBuyin === v ? 'activo' : ''}" data-buyin="${v}">${v === 'otro' ? 'Otro' : '🪙 ' + v + ' €'}</div>`
+  ).join('');
+
+  const chipsJug = DB.jugadores.length
+    ? DB.jugadores.map(j =>
+        `<div class="chip ${selJugadores.has(j.id) ? 'activo' : ''}" data-jug="${j.id}">${esc(j.nombre)}</div>`
+      ).join('')
+    : '<p class="suave">No hay jugadores. Añádelos en la pestaña 👥 Jugadores.</p>';
+
+  return `
+    <h1>♠ Nueva partida</h1>
+    <div class="carta">
+      <label>Fecha</label>
+      <input type="date" id="fecha" value="${hoy()}">
+      <label>Buy-in</label>
+      <div class="chips">${chipsBuyin}</div>
+      <input type="number" id="otroBuyin" class="${selBuyin === 'otro' ? '' : 'oculto'}"
+             placeholder="Buy-in en €" min="1" step="0.5" style="margin-top:8px">
+      <label>Notas (opcional)</label>
+      <input type="text" id="notas" placeholder="En casa de Pitu, torneo especial...">
+    </div>
+    <div class="carta">
+      <h2>👥 ¿Quiénes juegan hoy?</h2>
+      <div class="chips">${chipsJug}</div>
+    </div>
+    <button class="b-oro b-ancho" id="btnEmpezar">▶ Empezar partida</button>`;
+}
+
+/* ============================================================
+   PANTALLA: PARTIDA EN CURSO
+   ============================================================ */
+function vistaEnCurso() {
+  const g = enCurso;
+
+  const tarjetasVivas = g.vivos.map(id => `
+    <div class="tj tj-viva">
+      <div class="nombre">🂠 ${esc(nombreJugador(id))}</div>
+      <div class="info">${infoInversion(id)}</div>
+      <button class="b-ficha" data-addon="${id}">➕ Add-on</button>
+    </div>`).join('');
+
+  const tarjetasMuertas = [...g.eliminados].reverse().map(id => `
+    <div class="tj tj-muerta">
+      <div class="nombre">💀 ${esc(nombreJugador(id))}</div>
+      <div class="info">Eliminado · ${infoInversion(id)}</div>
+      <button class="b-ficha" data-recompra="${id}">💶 Recompra</button>
+    </div>`).join('');
+
+  const opciones = g.vivos.map(id =>
+    `<option value="${id}">${esc(nombreJugador(id))}</option>`).join('');
+
+  const log = [...g.log].reverse().map(l => `<li>${esc(l)}</li>`).join('');
+
+  return `
+    <h1>♦ Partida en curso</h1>
+    <div class="bote">💰 Bote: ${eur(boteEnCurso())}</div>
+    <div class="tarjetas">${tarjetasVivas}${tarjetasMuertas}</div>
+    <div class="carta" style="margin-top:14px">
+      <h2>Registrar eliminación</h2>
+      <label>¿Quién elimina?</label>
+      <select id="selEliminador"><option value="">—</option>${opciones}</select>
+      <label>¿A quién?</label>
+      <select id="selEliminado"><option value="">—</option>${opciones}</select>
+      <div class="fila-botones" style="margin-top:12px">
+        <button class="b-rojo" id="btnEliminar">💀 Eliminar</button>
+        <button id="btnDeshacer">↩ Deshacer</button>
+      </div>
+    </div>
+    <div class="carta">
+      <h2>Registro de la partida</h2>
+      <ul class="log">${log || '<li class="suave">Sin acciones todavía</li>'}</ul>
+    </div>
+    <div class="fila-botones">
+      <button id="btnCancelar">✖ Cancelar</button>
+      <button class="b-oro" id="btnFinalizar">🏆 Finalizar y guardar</button>
+    </div>`;
+}
+
+function infoInversion(id) {
+  const g = enCurso;
+  const r = g.recompras[id], a = g.addons[id];
+  return `R: ${r} · A: ${a} · ${eur((1 + r + a) * g.buyin)}`;
+}
+
+/* --- Acciones de la partida en vivo --- */
+function accionEliminar() {
+  const g = enCurso;
+  const eliminador = parseInt($('#selEliminador').value);
+  const eliminado = parseInt($('#selEliminado').value);
+  if (!eliminador || !eliminado) return alerta('Selecciona el eliminador y el eliminado.');
+  if (eliminador === eliminado) return alerta('Un jugador no puede eliminarse a sí mismo.');
+
+  g.eliminaciones.push({ eliminadorId: eliminador, eliminadoId: eliminado, orden: g.eliminaciones.length + 1 });
+  g.vivos = g.vivos.filter(id => id !== eliminado);
+  g.eliminados.push(eliminado);
+  g.acciones.push({ tipo: 'ELIMINACION', jugadorId: eliminado });
+  g.log.push(`${g.eliminaciones.length}. 💀 ${nombreJugador(eliminador)} eliminó a ${nombreJugador(eliminado)}`);
+  if (g.vivos.length === 1) {
+    g.log.push(`🏆 ¡${nombreJugador(g.vivos[0])} gana... si nadie hace recompra!`);
+  }
+  render();
+}
+
+function accionAddon(id) {
+  const g = enCurso;
+  g.addons[id]++;
+  g.acciones.push({ tipo: 'ADDON', jugadorId: id });
+  g.log.push(`➕ ${nombreJugador(id)} hizo un add-on (+${eur(g.buyin)} al bote)`);
+  render();
+}
+
+function accionRecompra(id) {
+  const g = enCurso;
+  const indice = g.eliminados.indexOf(id);
+  if (indice < 0) return;
+  g.eliminados.splice(indice, 1);
+  g.vivos.push(id);
+  g.recompras[id]++;
+  g.acciones.push({ tipo: 'RECOMPRA', jugadorId: id, indice });
+  g.log.push(`💶 ${nombreJugador(id)} hizo una recompra y vuelve a la mesa (+${eur(g.buyin)} al bote)`);
+  render();
+}
+
+function accionDeshacer() {
+  const g = enCurso;
+  if (!g.acciones.length) return;
+  const a = g.acciones.pop();
+  // Quitamos el anuncio de ganador si es la última línea
+  if (g.log.length && g.log[g.log.length - 1].startsWith('🏆')) g.log.pop();
+  if (g.log.length) g.log.pop();
+
+  if (a.tipo === 'ELIMINACION') {
+    g.eliminaciones.pop();
+    g.eliminados.pop();
+    g.vivos.push(a.jugadorId);
+  } else if (a.tipo === 'ADDON') {
+    g.addons[a.jugadorId]--;
+  } else { // RECOMPRA
+    g.vivos = g.vivos.filter(id => id !== a.jugadorId);
+    g.eliminados.splice(a.indice, 0, a.jugadorId);
+    g.recompras[a.jugadorId]--;
+  }
+  render();
+}
+
+/* --- Finalizar: diálogo de reparto y guardado --- */
+function accionFinalizar() {
+  const g = enCurso;
+  if (g.vivos.length > 1 &&
+      !confirm(`Todavía quedan ${g.vivos.length} jugadores vivos. ¿Guardar igualmente (sin ganador)?`)) return;
+
+  const bote = boteEnCurso();
+  // Orden para el reparto: vivos primero (ganador), luego eliminados del último al primero
+  const orden = [...g.vivos, ...[...g.eliminados].reverse()];
+
+  const dlg = $('#dlgReparto');
+  dlg.innerHTML = `
+    <h2>Reparto del bote: ${eur(bote)}</h2>
+    <p class="suave">Por defecto todo al ganador. Ajusta si repartís (70/30, etc.).</p>
+    ${orden.map((id, i) => `
+      <div class="fila-premio">
+        <span>${i + 1}º ${esc(nombreJugador(id))}</span>
+        <input type="number" min="0" step="0.5" data-premio="${id}"
+               value="${i === 0 && g.vivos.length === 1 ? bote : 0}"> €
+      </div>`).join('')}
+    <div class="fila-botones" style="margin-top:14px">
+      <button id="btnRepartoCancelar">Cancelar</button>
+      <button class="b-oro" id="btnRepartoOk">Guardar partida</button>
+    </div>`;
+  dlg.showModal();
+
+  $('#btnRepartoCancelar').onclick = () => dlg.close();
+  $('#btnRepartoOk').onclick = () => {
+    const premios = {};
+    let suma = 0;
+    for (const inp of dlg.querySelectorAll('[data-premio]')) {
+      const v = parseFloat(inp.value) || 0;
+      if (v < 0) return alerta('Los premios no pueden ser negativos.');
+      premios[inp.dataset.premio] = v;
+      suma += v;
+    }
+    if (Math.abs(suma - bote) > 0.01 &&
+        !confirm(`Ojo: el reparto suma ${eur(suma)} pero el bote es ${eur(bote)}. ¿Guardar igualmente?`)) return;
+
+    guardarPartidaTerminada(premios);
+    dlg.close();
+  };
+}
+
+function guardarPartidaTerminada(premios) {
+  const g = enCurso;
+  const total = g.vivos.length + g.eliminados.length;
+  const participaciones = [];
+
+  if (g.vivos.length === 1) {
+    const id = g.vivos[0];
+    participaciones.push({ jugadorId: id, recompras: g.recompras[id], addons: g.addons[id],
+      posicion: 1, premio: premios[id] || 0 });
+  } else {
+    for (const id of g.vivos) {
+      participaciones.push({ jugadorId: id, recompras: g.recompras[id], addons: g.addons[id],
+        posicion: null, premio: premios[id] || 0 });
+    }
+  }
+  // El último eliminado es 2º (si hay ganador), el anterior 3º, etc.
+  let pos = g.vivos.length === 1 ? 2 : total - g.eliminados.length + 1;
+  for (let i = g.eliminados.length - 1; i >= 0; i--) {
+    const id = g.eliminados[i];
+    participaciones.push({ jugadorId: id, recompras: g.recompras[id], addons: g.addons[id],
+      posicion: pos++, premio: premios[id] || 0 });
+  }
+
+  DB.partidas.push({
+    id: DB.siguienteIdPartida++,
+    fecha: g.fecha, buyin: g.buyin, notas: g.notas,
+    participaciones, eliminaciones: g.eliminaciones
+  });
+  guardar(DB);
+  enCurso = null;
+  selJugadores = new Set();
+  alerta('✅ Partida guardada.');
+  render();
+}
+
+/* ============================================================
+   PANTALLA: HISTORIAL (Todas / 5 € / 10 €)
+   ============================================================ */
+function vistaHistorial() {
+  const filtros = [['todas', 'Todas'], ['5', 'De 5 €'], ['10', 'De 10 €']];
+  const subtabs = filtros.map(([v, t]) =>
+    `<div class="subtab ${subHistorial === v ? 'activo' : ''}" data-subh="${v}">${t}</div>`).join('');
+
+  let partidas = [...DB.partidas].sort((a, b) => b.fecha.localeCompare(a.fecha) || b.id - a.id);
+  if (subHistorial !== 'todas') partidas = partidas.filter(p => p.buyin === parseFloat(subHistorial));
+
+  const filas = partidas.map(p => {
+    const ganador = p.participaciones.find(x => x.posicion === 1);
+    return `<tr class="${partidaSeleccionada === p.id ? 'sel' : ''}" data-part="${p.id}">
+      <td>${p.fecha}</td><td>${p.buyin} €</td><td>${p.participaciones.length}</td>
+      <td>${eur(botePartida(p))}</td><td>${ganador ? esc(nombreJugador(ganador.jugadorId)) : '-'}</td>
+    </tr>`;
+  }).join('');
+
+  const seleccionada = DB.partidas.find(p => p.id === partidaSeleccionada);
+
+  return `
+    <h1>📋 Historial</h1>
+    <div class="subtabs">${subtabs}</div>
+    <div class="carta tabla-scroll">
+      <table>
+        <thead><tr><th>Fecha</th><th>Buy-in</th><th>Jug.</th><th>Bote</th><th>Ganador</th></tr></thead>
+        <tbody>${filas || '<tr><td colspan="5" class="suave">Sin partidas</td></tr>'}</tbody>
+      </table>
+    </div>
+    ${seleccionada ? `
+      <div class="carta">
+        <h2>Detalle · ${seleccionada.fecha}${seleccionada.notas ? ' · ' + esc(seleccionada.notas) : ''}</h2>
+        <div class="detalle">${detallePartida(seleccionada)}</div>
+        <button class="b-rojo b-ancho" style="margin-top:10px" id="btnBorrarPartida">🗑 Borrar esta partida</button>
+      </div>` : '<p class="suave">Toca una partida para ver el detalle.</p>'}`;
+}
+
+function detallePartida(p) {
+  const orden = [...p.participaciones].sort((a, b) =>
+    (a.posicion ?? 99) - (b.posicion ?? 99));
+  let t = 'CLASIFICACIÓN\n';
+  for (const x of orden) {
+    const bal = x.premio - invertido(x, p.buyin);
+    t += `  ${x.posicion ? x.posicion + 'º' : '-'}  ${esc(nombreJugador(x.jugadorId))}` +
+         `  |  R: ${x.recompras}  A: ${x.addons}  |  Premio: ${eur(x.premio)}` +
+         `  |  Balance: ${bal >= 0 ? '+' : ''}${eur(bal)}\n`;
+  }
+  t += '\nELIMINACIONES\n';
+  if (!p.eliminaciones.length) t += '  (sin eliminaciones registradas)\n';
+  for (const e of p.eliminaciones) {
+    t += `  ${e.orden}. ${esc(nombreJugador(e.eliminadorId))} eliminó a ${esc(nombreJugador(e.eliminadoId))}\n`;
+  }
+  return t;
+}
+
+/* ============================================================
+   PANTALLA: ESTADÍSTICAS
+   ============================================================ */
+function vistaStats() {
+  const subtabs = [['ranking', '🏆 Ranking'], ['matriz', '⚔ Matriz'], ['rivales', '🎯 Némesis']]
+    .map(([v, t]) => `<div class="subtab ${subStats === v ? 'activo' : ''}" data-subs="${v}">${t}</div>`).join('');
+  let cuerpo = '';
+  if (subStats === 'ranking') cuerpo = statsRanking();
+  else if (subStats === 'matriz') cuerpo = statsMatriz();
+  else cuerpo = statsRivales();
+  return `<h1>📊 Estadísticas</h1><div class="subtabs">${subtabs}</div>${cuerpo}
+    <div class="carta">
+      <h2>💾 Copia de seguridad</h2>
+      <p class="suave">Exporta los datos para pasarlos a otro dispositivo o compartirlos con el grupo.</p>
+      <div class="fila-botones">
+        <button id="btnExportar">⬇ Exportar</button>
+        <button id="btnImportar">⬆ Importar</button>
+      </div>
+      <input type="file" id="ficheroImportar" accept=".json" class="oculto">
+    </div>`;
+}
+
+function statsRanking() {
+  const filtros = [['todas', 'Todas'], ['5', '5 €'], ['10', '10 €']];
+  const chips = filtros.map(([v, t]) =>
+    `<div class="chip ${filtroRanking === v ? 'activo' : ''}" data-frank="${v}">${t}</div>`).join('');
+
+  let partidas = DB.partidas;
+  if (filtroRanking !== 'todas') partidas = partidas.filter(p => p.buyin === parseFloat(filtroRanking));
+
+  // Acumulamos por jugador
+  const acc = {};
+  for (const j of DB.jugadores) acc[j.id] = { nombre: j.nombre, partidas: 0, victorias: 0, inv: 0, gan: 0, elim: 0, veces: 0 };
+  for (const p of partidas) {
+    for (const x of p.participaciones) {
+      const a = acc[x.jugadorId]; if (!a) continue;
+      a.partidas++; a.inv += invertido(x, p.buyin); a.gan += x.premio;
+      if (x.posicion === 1) a.victorias++;
+    }
+    for (const e of p.eliminaciones) {
+      if (acc[e.eliminadorId]) acc[e.eliminadorId].elim++;
+      if (acc[e.eliminadoId]) acc[e.eliminadoId].veces++;
+    }
+  }
+  const filas = Object.values(acc)
+    .filter(a => a.partidas > 0)
+    .sort((a, b) => (b.gan - b.inv) - (a.gan - a.inv))
+    .map(a => {
+      const bal = a.gan - a.inv;
+      return `<tr><td>${esc(a.nombre)}</td><td>${a.partidas}</td><td>${a.victorias}</td>
+        <td>${Math.round(100 * a.victorias / a.partidas)}%</td>
+        <td>${eur(a.inv)}</td><td>${eur(a.gan)}</td>
+        <td style="color:${bal >= 0 ? '#8fdc9f' : '#f08080'};font-weight:bold">${bal >= 0 ? '+' : ''}${eur(bal)}</td>
+        <td>${a.elim}</td><td>${a.veces}</td></tr>`;
+    }).join('');
+
+  return `<div class="chips" style="margin-bottom:10px">${chips}</div>
+    <div class="carta tabla-scroll">
+      <table><thead><tr><th>Jugador</th><th>Part.</th><th>Vict.</th><th>%</th>
+      <th>Invertido</th><th>Ganado</th><th>Balance</th><th>Elim.</th><th>Caídas</th></tr></thead>
+      <tbody>${filas || '<tr><td colspan="9" class="suave">Sin datos</td></tr>'}</tbody></table>
+    </div>`;
+}
+
+function contarRivalidades() {
+  const mapa = {}; // "eliminadorId-eliminadoId" -> veces
+  for (const p of DB.partidas)
+    for (const e of p.eliminaciones) {
+      const k = e.eliminadorId + '-' + e.eliminadoId;
+      mapa[k] = (mapa[k] || 0) + 1;
+    }
+  return Object.entries(mapa).map(([k, veces]) => {
+    const [eliminador, eliminado] = k.split('-').map(Number);
+    return { eliminador, eliminado, veces };
+  }).sort((a, b) => b.veces - a.veces);
+}
+
+function statsMatriz() {
+  const riv = contarRivalidades();
+  const ids = [...new Set(riv.flatMap(r => [r.eliminador, r.eliminado]))];
+  if (!ids.length) return '<div class="carta"><p class="suave">Todavía no hay eliminaciones registradas.</p></div>';
+
+  const celda = (f, c) => {
+    if (f === c) return '—';
+    const r = riv.find(x => x.eliminador === f && x.eliminado === c);
+    return r ? `<b style="color:var(--oro-claro)">${r.veces}</b>` : '·';
+  };
+  const cab = ids.map(id => `<th>${esc(nombreJugador(id))}</th>`).join('');
+  const filas = ids.map(f =>
+    `<tr><th>${esc(nombreJugador(f))}</th>${ids.map(c => `<td>${celda(f, c)}</td>`).join('')}</tr>`).join('');
+
+  return `<div class="carta">
+    <p class="suave">Cada celda: cuántas veces el jugador de la FILA ha eliminado al de la COLUMNA.</p>
+    <div class="tabla-scroll"><table class="matriz">
+      <thead><tr><th>elimina a →</th>${cab}</tr></thead><tbody>${filas}</tbody>
+    </table></div></div>`;
+}
+
+function statsRivales() {
+  const riv = contarRivalidades();
+  if (!riv.length) return '<div class="carta"><p class="suave">Todavía no hay datos suficientes.</p></div>';
+
+  const filas = riv.map(r =>
+    `<tr><td>${esc(nombreJugador(r.eliminador))}</td><td>${esc(nombreJugador(r.eliminado))}</td><td>${r.veces}</td></tr>`).join('');
+
+  // La némesis de cada víctima: la primera aparición en la lista ordenada
+  const nemesis = {};
+  for (const r of riv) if (!(r.eliminado in nemesis)) nemesis[r.eliminado] = r;
+  const lineas = Object.values(nemesis).map(r =>
+    `😈 La némesis de <b>${esc(nombreJugador(r.eliminado))}</b> es <b>${esc(nombreJugador(r.eliminador))}</b> (${r.veces} ${r.veces === 1 ? 'vez' : 'veces'})`).join('<br>');
+
+  return `<div class="carta tabla-scroll">
+      <table><thead><tr><th>Verdugo</th><th>Víctima</th><th>Veces</th></tr></thead><tbody>${filas}</tbody></table>
+    </div>
+    <div class="carta"><h2>Némesis de cada jugador</h2><p>${lineas}</p></div>`;
+}
+
+/* ============================================================
+   PANTALLA: JUGADORES
+   ============================================================ */
+function vistaJugadores() {
+  const filas = DB.jugadores.map(j => {
+    const tienePartidas = DB.partidas.some(p => p.participaciones.some(x => x.jugadorId === j.id));
+    return `<tr><td>${esc(j.nombre)}</td>
+      <td style="text-align:right">${tienePartidas ? '<span class="suave">con historial</span>'
+        : `<button class="b-rojo" data-borrarjug="${j.id}" style="padding:5px 10px;font-size:.8rem">🗑</button>`}</td></tr>`;
+  }).join('');
+
+  return `
+    <h1>👥 Jugadores</h1>
+    <div class="carta">
+      <label>Nombre del jugador</label>
+      <input type="text" id="nuevoNombre" placeholder="Pali, Juan, Antonio...">
+      <button class="b-oro b-ancho" style="margin-top:10px" id="btnAltaJugador">➕ Añadir</button>
+    </div>
+    <div class="carta tabla-scroll">
+      <table><tbody>${filas || '<tr><td class="suave">Sin jugadores todavía</td></tr>'}</tbody></table>
+      <p class="suave" style="margin-bottom:0">Los jugadores con partidas registradas no se pueden borrar para no romper el historial.</p>
+    </div>`;
+}
+
+/* ============================================================
+   EVENTOS (se reenganchan tras cada render)
+   ============================================================ */
+function alerta(msg) { alert(msg); }
+
+function enganchar() {
+  // --- Configuración de partida ---
+  document.querySelectorAll('[data-buyin]').forEach(el => el.onclick = () => {
+    selBuyin = el.dataset.buyin === 'otro' ? 'otro' : parseFloat(el.dataset.buyin);
+    render();
+  });
+  document.querySelectorAll('[data-jug]').forEach(el => el.onclick = () => {
+    const id = parseInt(el.dataset.jug);
+    selJugadores.has(id) ? selJugadores.delete(id) : selJugadores.add(id);
+    render();
+  });
+  const btnEmpezar = $('#btnEmpezar');
+  if (btnEmpezar) btnEmpezar.onclick = () => {
+    let buyin = selBuyin;
+    if (buyin === 'otro') {
+      buyin = parseFloat($('#otroBuyin').value);
+      if (!buyin || buyin <= 0) return alerta('Introduce un buy-in válido.');
+    }
+    if (selJugadores.size < 2) return alerta('Selecciona al menos 2 jugadores.');
+    enCurso = nuevaPartidaEnCurso(buyin, $('#fecha').value || hoy(),
+      $('#notas').value.trim(), [...selJugadores]);
+    render();
+  };
+
+  // --- Partida en curso ---
+  document.querySelectorAll('[data-addon]').forEach(el =>
+    el.onclick = () => accionAddon(parseInt(el.dataset.addon)));
+  document.querySelectorAll('[data-recompra]').forEach(el =>
+    el.onclick = () => accionRecompra(parseInt(el.dataset.recompra)));
+  const be = $('#btnEliminar'); if (be) be.onclick = accionEliminar;
+  const bd = $('#btnDeshacer'); if (bd) bd.onclick = accionDeshacer;
+  const bf = $('#btnFinalizar'); if (bf) bf.onclick = accionFinalizar;
+  const bc = $('#btnCancelar'); if (bc) bc.onclick = () => {
+    if (confirm('¿Cancelar la partida? Se perderá lo registrado.')) { enCurso = null; render(); }
+  };
+
+  // --- Historial ---
+  document.querySelectorAll('[data-subh]').forEach(el =>
+    el.onclick = () => { subHistorial = el.dataset.subh; partidaSeleccionada = null; render(); });
+  document.querySelectorAll('[data-part]').forEach(el =>
+    el.onclick = () => { partidaSeleccionada = parseInt(el.dataset.part); render(); });
+  const bb = $('#btnBorrarPartida'); if (bb) bb.onclick = () => {
+    if (!confirm('¿Borrar esta partida? No se puede deshacer.')) return;
+    DB.partidas = DB.partidas.filter(p => p.id !== partidaSeleccionada);
+    partidaSeleccionada = null;
+    guardar(DB); render();
+  };
+
+  // --- Estadísticas ---
+  document.querySelectorAll('[data-subs]').forEach(el =>
+    el.onclick = () => { subStats = el.dataset.subs; render(); });
+  document.querySelectorAll('[data-frank]').forEach(el =>
+    el.onclick = () => { filtroRanking = el.dataset.frank; render(); });
+
+  const bex = $('#btnExportar'); if (bex) bex.onclick = exportar;
+  const bim = $('#btnImportar'); if (bim) bim.onclick = () => $('#ficheroImportar').click();
+  const fim = $('#ficheroImportar'); if (fim) fim.onchange = importar;
+
+  // --- Jugadores ---
+  const ba = $('#btnAltaJugador'); if (ba) ba.onclick = altaJugador;
+  const inNombre = $('#nuevoNombre');
+  if (inNombre) inNombre.onkeydown = e => { if (e.key === 'Enter') altaJugador(); };
+  document.querySelectorAll('[data-borrarjug]').forEach(el => el.onclick = () => {
+    DB.jugadores = DB.jugadores.filter(j => j.id !== parseInt(el.dataset.borrarjug));
+    guardar(DB); render();
+  });
+}
+
+function altaJugador() {
+  const nombre = $('#nuevoNombre').value.trim();
+  if (!nombre) return;
+  if (DB.jugadores.some(j => j.nombre.toLowerCase() === nombre.toLowerCase()))
+    return alerta('Ya existe un jugador con ese nombre.');
+  DB.jugadores.push({ id: DB.siguienteIdJugador++, nombre });
+  guardar(DB); render();
+}
+
+/* --- Exportar / importar copia de seguridad --- */
+function exportar() {
+  const blob = new Blob([JSON.stringify(DB, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'poker-tracker-backup-' + hoy() + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+function importar(ev) {
+  const fichero = ev.target.files[0];
+  if (!fichero) return;
+  const lector = new FileReader();
+  lector.onload = () => {
+    try {
+      const d = JSON.parse(lector.result);
+      if (!Array.isArray(d.jugadores) || !Array.isArray(d.partidas)) throw new Error();
+      if (!confirm('Esto SUSTITUYE los datos actuales por los del fichero. ¿Continuar?')) return;
+      DB = d;
+      guardar(DB); render();
+      alerta('✅ Datos importados.');
+    } catch (e) {
+      alerta('El fichero no es una copia válida de Poker Tracker.');
+    }
+  };
+  lector.readAsText(fichero);
+  ev.target.value = '';
+}
+
+/* --- Service worker para funcionar sin conexión --- */
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+
+render();
+</script>
+</body>
+</html>
