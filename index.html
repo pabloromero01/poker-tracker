@@ -249,15 +249,19 @@ dialog::backdrop { background: rgba(0,0,0,.65); }
 
 <dialog id="dlgReparto"></dialog>
 
-<script>
-'use strict';
+<script type="module">
 /* ============================================================
    ALMACENAMIENTO
-   Los datos se guardan en el dispositivo (localStorage) con un
-   respaldo en memoria por si el navegador lo bloquea.
+   - Copia local en el dispositivo (localStorage): permite abrir
+     la app al instante y funcionar sin conexión.
+   - Copia en la nube (Firestore): sincroniza a todos los móviles
+     del grupo en tiempo real.
+   Todo el grupo comparte un "código de grupo" que funciona como
+   identificador y contraseña de vuestra base de datos.
    ============================================================ */
 const CLAVE = 'pokerTrackerDatos';
-let memoria = null; // respaldo en memoria
+const CLAVE_GRUPO = 'pokerTrackerGrupo';
+let memoria = null; // respaldo en memoria por si el navegador bloquea localStorage
 
 function datosVacios() {
   return { jugadores: [], partidas: [], siguienteIdJugador: 1, siguienteIdPartida: 1 };
@@ -269,12 +273,116 @@ function cargar() {
   } catch (e) { /* almacenamiento no disponible */ }
   return memoria ? memoria : datosVacios();
 }
-function guardar(d) {
+function guardarLocal(d) {
   memoria = d;
   try { localStorage.setItem(CLAVE, JSON.stringify(d)); } catch (e) { /* seguimos en memoria */ }
 }
 
+/* Guarda en local y, si hay nube configurada, sube los cambios */
+function guardar(d) {
+  guardarLocal(d);
+  subirANube(d);
+}
+
 let DB = cargar();
+
+/* ============================================================
+   SINCRONIZACIÓN CON FIREBASE
+   La configuración vive en firebase-config.js. Si ese fichero no
+   existe o no está configurado, la app sigue funcionando en modo
+   local (como antes), solo que sin compartir datos.
+   ============================================================ */
+let codigoGrupo = '';
+try { codigoGrupo = localStorage.getItem(CLAVE_GRUPO) || ''; } catch (e) {}
+
+let nube = null;        // { db, ref, setDoc, doc, onSnapshot }
+let estadoNube = 'local'; // local | conectando | ok | error
+let mensajeNube = '';
+let escuchando = null;  // función para dejar de escuchar al cambiar de grupo
+
+async function iniciarNube() {
+  if (!codigoGrupo) return;
+  estadoNube = 'conectando';
+  render();
+  try {
+    const { firebaseConfig } = await import('./firebase-config.js');
+    if (!firebaseConfig || !firebaseConfig.projectId || firebaseConfig.projectId.includes('AQUI')) {
+      throw new Error('firebase-config.js sin configurar');
+    }
+    const { initializeApp } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const { getAuth, signInAnonymously } = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js');
+    const fs = await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+
+    const app = initializeApp(firebaseConfig);
+    // Caché persistente: los datos siguen disponibles sin conexión
+    let db;
+    try {
+      db = fs.initializeFirestore(app, {
+        localCache: fs.persistentLocalCache({ tabManager: fs.persistentMultipleTabManager() })
+      });
+    } catch (e) {
+      db = fs.getFirestore(app); // si la caché falla, seguimos sin ella
+    }
+
+    await signInAnonymously(getAuth(app));
+
+    const ref = fs.doc(db, 'grupos', codigoGrupo);
+    nube = { db, ref, setDoc: fs.setDoc, onSnapshot: fs.onSnapshot };
+
+    // Escuchamos cambios: cualquier móvil del grupo que guarde algo
+    // actualiza esta pantalla automáticamente
+    escuchando = fs.onSnapshot(ref, snap => {
+      estadoNube = 'ok';
+      if (snap.exists() && snap.data().json) {
+        try {
+          const remoto = JSON.parse(snap.data().json);
+          DB = remoto;
+          guardarLocal(DB);
+        } catch (e) { /* documento corrupto: ignoramos */ }
+      } else {
+        // El grupo aún no existe en la nube: subimos lo que tengamos en local
+        subirANube(DB);
+      }
+      render();
+    }, err => {
+      estadoNube = 'error';
+      mensajeNube = err.code === 'permission-denied'
+        ? 'Permiso denegado: revisa las reglas de Firestore.'
+        : err.message;
+      render();
+    });
+  } catch (e) {
+    estadoNube = 'error';
+    mensajeNube = e.message.includes('firebase-config')
+      ? 'Falta configurar firebase-config.js.'
+      : e.message;
+    render();
+  }
+}
+
+function subirANube(d) {
+  if (!nube) return;
+  nube.setDoc(nube.ref, { json: JSON.stringify(d), actualizado: Date.now() })
+    .catch(err => { estadoNube = 'error'; mensajeNube = err.message; render(); });
+}
+
+function cambiarGrupo(codigo) {
+  if (escuchando) { escuchando(); escuchando = null; }
+  nube = null;
+  codigoGrupo = codigo.trim();
+  try { localStorage.setItem(CLAVE_GRUPO, codigoGrupo); } catch (e) {}
+  estadoNube = codigoGrupo ? 'conectando' : 'local';
+  iniciarNube();
+  render();
+}
+
+function textoEstadoNube() {
+  if (!codigoGrupo) return '📴 Solo este dispositivo';
+  if (estadoNube === 'conectando') return '⏳ Conectando...';
+  if (estadoNube === 'ok') return '☁ Sincronizado · grupo ' + codigoGrupo;
+  if (estadoNube === 'error') return '⚠ Sin sincronizar: ' + mensajeNube;
+  return '📴 Solo este dispositivo';
+}
 
 /* ============================================================
    UTILIDADES
@@ -638,6 +746,14 @@ function vistaStats() {
   else cuerpo = statsRivales();
   return `<h1>📊 Estadísticas</h1><div class="subtabs">${subtabs}</div>${cuerpo}
     <div class="carta">
+      <h2>☁ Sincronización</h2>
+      <p class="suave">${esc(textoEstadoNube())}</p>
+      <label>Código de grupo (el mismo para todos los amigos)</label>
+      <input type="text" id="inpGrupo" value="${esc(codigoGrupo)}" placeholder="ej: pitu-poker-2026">
+      <button class="b-oro b-ancho" style="margin-top:10px" id="btnGuardarGrupo">Conectar a este grupo</button>
+      ${codigoGrupo ? '<button class="b-ancho" style="margin-top:8px" id="btnSalirGrupo">Desconectar (modo local)</button>' : ''}
+    </div>
+    <div class="carta">
       <h2>💾 Copia de seguridad</h2>
       <p class="suave">Exporta los datos para pasarlos a otro dispositivo o compartirlos con el grupo.</p>
       <div class="fila-botones">
@@ -826,6 +942,19 @@ function enganchar() {
   document.querySelectorAll('[data-frank]').forEach(el =>
     el.onclick = () => { filtroRanking = el.dataset.frank; render(); });
 
+  const bgg = $('#btnGuardarGrupo'); if (bgg) bgg.onclick = () => {
+    const c = $('#inpGrupo').value.trim();
+    if (!c) return alerta('Escribe un código de grupo.');
+    if (!/^[a-zA-Z0-9_-]{4,40}$/.test(c))
+      return alerta('Usa entre 4 y 40 letras, números, guiones o guiones bajos (sin espacios ni acentos).');
+    if (!confirm('Al conectar, los datos del grupo en la nube pasarán a ser los que veas en este dispositivo. ¿Continuar?')) return;
+    cambiarGrupo(c);
+  };
+  const bsg = $('#btnSalirGrupo'); if (bsg) bsg.onclick = () => {
+    if (!confirm('¿Desconectar de la nube? Seguirás viendo los datos guardados en este dispositivo.')) return;
+    cambiarGrupo('');
+  };
+
   const bex = $('#btnExportar'); if (bex) bex.onclick = exportar;
   const bim = $('#btnImportar'); if (bim) bim.onclick = () => $('#ficheroImportar').click();
   const fim = $('#ficheroImportar'); if (fim) fim.onchange = importar;
@@ -884,6 +1013,7 @@ if ('serviceWorker' in navigator) {
 }
 
 render();
+iniciarNube();
 </script>
 </body>
 </html>
