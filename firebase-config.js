@@ -6,10 +6,10 @@
 // reglas de Firestore y el código de grupo.
 // ============================================================
 export const firebaseConfig = {
-  apiKey: "PEGA_AQUI_TU_API_KEY",
-  authDomain: "PEGA_AQUI.firebaseapp.com",
-  projectId: "PEGA_AQUI_TU_PROJECT_ID",
-  storageBucket: "PEGA_AQUI.appspot.com",
-  messagingSenderId: "PEGA_AQUI",
-  appId: "PEGA_AQUI"
+  apiKey: "AIzaSyAWYbaYsWLUA4xb-4JXvmI-Tv7UrxkawS4",
+  authDomain: "poker-tracker-d70a0.firebaseapp.com",
+  projectId: "poker-tracker-d70a0",
+  storageBucket: "poker-tracker-d70a0.firebasestorage.app",
+  messagingSenderId: "536790528145",
+  appId: "1:536790528145:web:c361971c496e7b6ed0cf30"
 };
