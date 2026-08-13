@@ -1,5 +1,5 @@
 // Service worker: cachea la app para que funcione sin conexión
-const CACHE = 'poker-tracker-v2';
+const CACHE = 'poker-tracker-v3';
 const FICHEROS = ['.', 'index.html', 'manifest.json', 'firebase-config.js', 'icon-180.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
